@@ -21,7 +21,7 @@ const playfairDisplay = Playfair_Display({
 
 export const metadata: Metadata = {
   title: {
-    default: "TopRev - AI Code Review by Top 0.1% Engineers | Solahudeen Babatunde Abdulrahmon",
+    default: "TopRev - Code Review by Top 0.1% Engineer | Solahudeen Babatunde Abdulrahmon",
     template: "%s | TopRev",
   },
   description:
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://toprev.vercel.app",
     siteName: "TopRev",
-    title: "TopRev - AI Code Review by Top 0.1% Engineers",
+    title: "TopRev - Code Review by Top 0.1% Engineer",
     description:
       "Get brutal, honest code reviews powered by AI trained on top 0.1% Principal Engineers. Analyze code complexity, find bugs, security issues, and anti-patterns. Created by Solahudeen Babatunde Abdulrahmon.",
     images: [
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "TopRev - AI Code Review by Top 0.1% Engineers",
+    title: "TopRev - Code Review by Top 0.1% Engineer",
     description:
       "Get brutal, honest code reviews powered by AI. Analyze code complexity, security, and best practices. By Solahudeen Babatunde Abdulrahmon.",
     images: ["https://toprev.vercel.app/og-image.png"],

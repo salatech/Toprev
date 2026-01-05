@@ -241,4 +241,4 @@ For issues or questions, please contact the author.
 
 ---
 
-**TopRev** - Code Review by Top 0.1% Engineers
+**TopRev** - Code Review by Top 0.1% Engineer

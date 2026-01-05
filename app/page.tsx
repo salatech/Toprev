@@ -103,7 +103,7 @@ export default function Home() {
         className="text-center flex-shrink-0 py-2 md:py-4"
       >
         <p className="font-mono text-xl text-zinc-400">
-          TopRev - Code Review by Top 0.1%
+          TopRev - Code Review by Top 0.1% Engineer
         </p>
       </motion.div>
 
