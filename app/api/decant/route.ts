@@ -136,9 +136,9 @@ export async function POST(request: NextRequest) {
     const { code } = validationResult.data;
 
     // Check API key
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.API_KEY;
     if (!apiKey) {
-      console.error("GEMINI_API_KEY is not configured");
+      console.error("API_KEY is not configured");
       return NextResponse.json(
         { error: "Service temporarily unavailable" },
         { status: 503 }

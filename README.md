@@ -63,7 +63,7 @@ Created by **Solahudeen Babatunde Abdulrahmon**
    
    Create a `.env.local` file in the root directory:
    ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
+   API_KEY=your_gemini_api_key_here
    ```
 
 4. **Run the development server**
@@ -83,7 +83,7 @@ Created by **Solahudeen Babatunde Abdulrahmon**
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `GEMINI_API_KEY` | Your Google Gemini API key | Yes |
+| `API_KEY` | Your API key | Yes |
 
 ## Usage
 
@@ -189,7 +189,7 @@ toprev/
    - Import your repository
 
 3. **Add environment variables**
-   - In Vercel project settings, add `GEMINI_API_KEY`
+   - In Vercel project settings, add `API_KEY`
 
 4. **Deploy**
    - Vercel will automatically deploy on push
@@ -202,7 +202,7 @@ The app can be deployed to any platform that supports Next.js:
 - AWS Amplify
 - DigitalOcean App Platform
 
-Make sure to set the `GEMINI_API_KEY` environment variable in your deployment platform.
+Make sure to set the `API_KEY` environment variable in your deployment platform.
 
 ## Development
 
