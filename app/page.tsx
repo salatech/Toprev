@@ -121,7 +121,7 @@ export default function Home() {
             <Button
               onClick={handleDecant}
               disabled={loading}
-              className="bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 font-mono"
+              className="bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 font-mono transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-amber-600/30 hover:scale-[1.02] active:scale-[0.98]"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
