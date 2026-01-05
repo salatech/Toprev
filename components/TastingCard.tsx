@@ -3,10 +3,132 @@
 import { motion } from "framer-motion";
 import { Download } from "lucide-react";
 import { useRef } from "react";
+import type { ReactElement } from "react";
 import { toPng } from "html-to-image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+// Simple markdown formatter
+const formatMarkdown = (text: string) => {
+  if (!text) return text;
+  
+  // Split by lines to handle code blocks
+  const lines = text.split('\n');
+  const formatted: ReactElement[] = [];
+  
+  let inCodeBlock = false;
+  let codeBlockContent: string[] = [];
+  
+  lines.forEach((line, index) => {
+    // Handle code blocks
+    if (line.trim().startsWith('```')) {
+      if (inCodeBlock) {
+        // End code block
+        formatted.push(
+          <pre key={`code-${index}`} className="bg-zinc-900/50 p-3 rounded-md my-2 overflow-x-auto border border-zinc-800">
+            <code className="font-mono text-xs text-zinc-300">
+              {codeBlockContent.join('\n')}
+            </code>
+          </pre>
+        );
+        codeBlockContent = [];
+        inCodeBlock = false;
+      } else {
+        // Start code block
+        inCodeBlock = true;
+      }
+      return;
+    }
+    
+    if (inCodeBlock) {
+      codeBlockContent.push(line);
+      return;
+    }
+    
+    // Handle inline code and bold text
+    let processedLine = line;
+    const codeParts: (string | ReactElement)[] = [];
+    let keyCounter = 0;
+    
+    // Process inline code first
+    const codeMatches = Array.from(processedLine.matchAll(/`([^`]+)`/g));
+    if (codeMatches.length > 0) {
+      let lastIndex = 0;
+      codeMatches.forEach((match) => {
+        if (match.index !== undefined) {
+          if (match.index > lastIndex) {
+            codeParts.push(processedLine.substring(lastIndex, match.index));
+          }
+          codeParts.push(
+            <code key={`inline-code-${keyCounter++}`} className="bg-zinc-900/50 px-1.5 py-0.5 rounded text-amber-400 font-mono text-xs border border-zinc-800">
+              {match[1]}
+            </code>
+          );
+          lastIndex = match.index + match[0].length;
+        }
+      });
+      if (lastIndex < processedLine.length) {
+        codeParts.push(processedLine.substring(lastIndex));
+      }
+    } else {
+      codeParts.push(processedLine);
+    }
+    
+    // Handle bold text
+    const finalParts: (string | ReactElement)[] = [];
+    codeParts.forEach((part, partIndex) => {
+      if (typeof part === 'string') {
+        const boldMatches = Array.from(part.matchAll(/\*\*([^*]+)\*\*/g));
+        if (boldMatches.length > 0) {
+          let partLastIndex = 0;
+          let boldKeyCounter = 0;
+          boldMatches.forEach((boldMatch) => {
+            if (boldMatch.index !== undefined) {
+              if (boldMatch.index > partLastIndex) {
+                finalParts.push(part.substring(partLastIndex, boldMatch.index));
+              }
+              finalParts.push(
+                <strong key={`bold-${partIndex}-${boldKeyCounter++}`} className="text-amber-400 font-semibold">
+                  {boldMatch[1]}
+                </strong>
+              );
+              partLastIndex = boldMatch.index + boldMatch[0].length;
+            }
+          });
+          if (partLastIndex < part.length) {
+            finalParts.push(part.substring(partLastIndex));
+          }
+        } else {
+          finalParts.push(part);
+        }
+      } else {
+        finalParts.push(part);
+      }
+    });
+    
+    if (finalParts.length > 0 || processedLine.trim() === '') {
+      formatted.push(
+        <p key={`line-${index}`} className="mb-2 last:mb-0">
+          {finalParts.length > 0 ? finalParts : '\u00A0'}
+        </p>
+      );
+    }
+  });
+  
+  // Handle any remaining code block
+  if (inCodeBlock && codeBlockContent.length > 0) {
+    formatted.push(
+      <pre key="code-final" className="bg-zinc-900/50 p-3 rounded-md my-2 overflow-x-auto border border-zinc-800">
+        <code className="font-mono text-xs text-zinc-300">
+          {codeBlockContent.join('\n')}
+        </code>
+      </pre>
+    );
+  }
+  
+  return formatted.length > 0 ? formatted : <p>{text}</p>;
+};
 
 interface TastingNote {
   title: string;
@@ -111,17 +233,17 @@ export function TastingCard({ tastingNote }: TastingCardProps) {
         <CardContent ref={cardContentRef} className="pt-4 flex-1 overflow-y-auto">
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-semibold text-amber-500 mb-2 font-mono uppercase">Diagnosis:</p>
-              <p className="font-mono text-sm leading-relaxed text-zinc-300">
-                {tastingNote.diagnosis}
-              </p>
+              <p className="text-xs font-semibold text-amber-500 mb-2 font-mono uppercase">Technical Assessment:</p>
+              <div className="font-mono text-sm leading-relaxed text-zinc-300">
+                {formatMarkdown(tastingNote.diagnosis)}
+              </div>
             </div>
             <div className="border-t border-amber-900/30 pt-4">
               <p className="text-xs font-semibold text-amber-500 mb-2 font-mono uppercase">Fix:</p>
               <div ref={fixContainerRef} className="max-h-[400px] overflow-y-auto pr-2">
-                <p className="font-mono text-sm text-zinc-400 whitespace-pre-wrap break-words">
-                  {tastingNote.fix}
-                </p>
+                <div className="font-mono text-sm text-zinc-400 break-words">
+                  {formatMarkdown(tastingNote.fix)}
+                </div>
               </div>
             </div>
           </div>

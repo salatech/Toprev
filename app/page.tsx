@@ -22,10 +22,17 @@ interface TastingNote {
   score: number;
 }
 
+interface ApiError {
+  message: string;
+  status?: number;
+  details?: Array<{ field: string; message: string }>;
+}
+
 export default function Home() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [tastingNote, setTastingNote] = useState<TastingNote | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   const { toast } = useToast();
 
@@ -41,6 +48,7 @@ export default function Home() {
 
     setLoading(true);
     setTastingNote(null);
+    setError(null);
 
     // Cycle through loading messages
     const messageInterval = setInterval(() => {
@@ -57,34 +65,64 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        let errorMsg = error.error || "Failed to analyze code";
-        
-        // Handle rate limiting
-        if (response.status === 429) {
-          errorMsg = "Too many requests. Please wait a minute before trying again.";
-        } else if (response.status === 413) {
-          errorMsg = "Code is too large. Please reduce the size and try again.";
-        } else if (error.details && Array.isArray(error.details)) {
-          // Show validation errors
-          errorMsg = error.details.map((d: { message: string }) => d.message).join(", ");
-        } else if (error.message && process.env.NODE_ENV === "development") {
-          errorMsg = error.message;
+        let errorData: any;
+        try {
+          errorData = await response.json();
+        } catch {
+          // If response is not JSON, create a generic error
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
         }
-        
-        throw new Error(errorMsg);
+
+        const apiError: ApiError = {
+          message: errorData.error || "Failed to analyze code",
+          status: response.status,
+          details: errorData.details,
+        };
+
+        // Handle specific error types
+        if (response.status === 429) {
+          apiError.message = "Rate limit exceeded. Please wait a minute before trying again.";
+        } else if (response.status === 413) {
+          apiError.message = "Code is too large. Maximum size is 100KB. Please reduce the size and try again.";
+        } else if (response.status === 503) {
+          apiError.message = "Service temporarily unavailable. Please try again later.";
+        } else if (response.status === 400 && errorData.details) {
+          // Validation errors
+          apiError.message = "Validation failed";
+        }
+
+        setError(apiError);
+        toast({
+          title: "Decanting Failed",
+          description: apiError.message,
+          variant: "destructive",
+        });
+        return;
       }
 
       const data = await response.json();
       setTastingNote(data);
+      setError(null);
     } catch (error) {
       console.error("Error decanting code:", error);
+      
+      const apiError: ApiError = {
+        message: error instanceof Error 
+          ? error.message 
+          : "Failed to analyze your code. Please check your connection and try again.",
+      };
+
+      // Handle network errors
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        apiError.message = "Network error. Please check your connection and try again.";
+      } else if (error instanceof Error && error.message.includes("timeout")) {
+        apiError.message = "Request timed out. The code analysis is taking too long. Please try again.";
+      }
+
+      setError(apiError);
       toast({
         title: "Decanting Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to analyze your code. Please try again.",
+        description: apiError.message,
         variant: "destructive",
       });
     } finally {
@@ -147,26 +185,85 @@ export default function Home() {
 
         {/* Right Side - Output */}
         <div className="flex flex-col min-h-[300px] md:h-full overflow-hidden">
-          {loading && !tastingNote && (
+          {loading && !tastingNote && !error && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="h-full"
             >
-              <Skeleton className="h-full w-full bg-zinc-900" />
+              <Skeleton className="h-full w-full" />
             </motion.div>
           )}
 
           <AnimatePresence>
-            {tastingNote && !loading && (
+            {error && !loading && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="h-full flex flex-col items-center justify-center p-8"
+              >
+                <div className="w-full max-w-2xl space-y-4">
+                  <div className="border border-red-900/50 bg-red-950/20 rounded-lg p-6 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-red-500 text-2xl">⚠️</div>
+                      <div className="flex-1 space-y-2">
+                        <h3 className="font-mono text-lg font-semibold text-red-400">
+                          Error
+                        </h3>
+                        <p className="font-mono text-sm text-red-300 leading-relaxed">
+                          {error.message}
+                        </p>
+                        {error.status && (
+                          <p className="font-mono text-xs text-red-400/70">
+                            Status Code: {error.status}
+                          </p>
+                        )}
+                        {error.details && error.details.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            <p className="font-mono text-xs font-semibold text-red-400 uppercase">
+                              Details:
+                            </p>
+                            <ul className="space-y-1">
+                              {error.details.map((detail, index) => (
+                                <li
+                                  key={index}
+                                  className="font-mono text-xs text-red-300/80 pl-4"
+                                >
+                                  <span className="text-red-400">
+                                    {detail.field}:
+                                  </span>{" "}
+                                  {detail.message}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setError(null);
+                      setTastingNote(null);
+                    }}
+                    className="w-full bg-red-900/30 text-red-400 border border-red-900/50 hover:bg-red-900/50 font-mono"
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {tastingNote && !loading && !error && (
               <div className="h-full overflow-y-auto">
                 <TastingCard tastingNote={tastingNote} />
               </div>
             )}
           </AnimatePresence>
 
-          {!loading && !tastingNote && (
+          {!loading && !tastingNote && !error && (
             <div className="h-full flex flex-col items-center justify-center text-zinc-600 font-mono text-sm space-y-2 px-8 text-center">
               <p className="text-zinc-500">Code review will appear here</p>
               <p className="text-zinc-700 text-xs">Paste your code on the left and click "Decant Code" to get a brutal technical analysis</p>

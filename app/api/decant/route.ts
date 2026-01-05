@@ -25,7 +25,7 @@ const requestSchema = z.object({
 const responseSchema = z.object({
   title: z.string().min(1).max(300),
   diagnosis: z.string().min(1).max(3000),
-  fix: z.string().min(1).max(2000), // Enforced 2000 character limit as per system prompt
+  fix: z.string().min(1).max(3000), // Enforced 3000 character limit as per system prompt
   level: z.string().min(1).max(150),
   score: z.number().min(0).max(100).transform((val) => Math.round(val)), // Accept float, convert to int
 });
@@ -194,9 +194,9 @@ Return a valid JSON object with EXACTLY these keys and no extra fields:
 }
 
 CRITICAL CONSTRAINT:
-- The ENTIRE JSON output (when stringified) MUST NOT exceed 2100 characters total.
+- The ENTIRE JSON output (when stringified) MUST NOT exceed 3000 characters total.
 - Be concise in all fields. Prioritize clarity and essential information over verbosity.
-- If your response would exceed 2000 characters, shorten all fields proportionally while maintaining the core message.
+- If your response would exceed 3000 characters, shorten all fields proportionally while maintaining the core message.
 
 ---
 
@@ -228,7 +228,7 @@ FIELD REQUIREMENTS:
 - You MUST illustrate the fix using:
   - A short before/after code snippet OR
   - A clear conceptual example if code is not applicable
-- Be concise - remember the entire JSON output must stay under 2000 characters total.
+- Be concise - remember the entire JSON output must stay under 3000 characters total.
 
 If the code is already excellent, suggest a minor optimization and explain why it matters.
 
@@ -274,14 +274,14 @@ The developer should feel roasted AND smarter.`;
       
       const parsed = JSON.parse(cleanedText);
       
-      // Check total JSON string length (must be <= 2100 characters)
+      // Check total JSON string length (must be <= 3000 characters)
       const jsonString = JSON.stringify(parsed);
-      if (jsonString.length > 2100) {
-        console.error("Response exceeds 2100 character limit:", jsonString.length);
+      if (jsonString.length > 3000) {
+        console.error("Response exceeds 3000 character limit:", jsonString.length);
         if (process.env.NODE_ENV === "development") {
           return NextResponse.json(
             { 
-              error: "Response exceeds 2100 character limit",
+              error: "Response exceeds 3000 character limit",
               actualLength: jsonString.length,
               received: parsed
             },
@@ -338,11 +338,11 @@ The developer should feel roasted AND smarter.`;
         try {
           const parsed = JSON.parse(jsonMatch[0]);
           
-          // Check total JSON string length (must be <= 2100 characters)
+          // Check total JSON string length (must be <= 3000 characters)
           const jsonString = JSON.stringify(parsed);
-          if (jsonString.length > 2100) {
-            console.error("Response exceeds 2100 character limit:", jsonString.length);
-            throw new Error("Response exceeds 2100 character limit");
+          if (jsonString.length > 3000) {
+            console.error("Response exceeds 3000 character limit:", jsonString.length);
+            throw new Error("Response exceeds 3000 character limit");
           }
           
           const responseValidation = responseSchema.safeParse(parsed);
