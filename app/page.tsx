@@ -1,164 +1,89 @@
 "use client";
 
 import { useState } from "react";
+import { experimental_useObject as useObject } from "@ai-sdk/react";
+import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { CodeEditor } from "@/components/CodeEditor";
 import { TastingCard } from "@/components/TastingCard";
 import { NarratorCard } from "@/components/NarratorCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Flame, GitPullRequest } from "lucide-react";
 
-// Loading messages for Roast mode
-const roastLoadingMessages = [
-  "Swirling the logic...",
-  "Checking indentation notes...",
-  "Aerating the syntax...",
-  "Judging your variable names...",
-  "Finding the spaghetti...",
-];
+// Schemas matching backend
+const tastingNoteSchema = z.object({
+  title: z.string(),
+  diagnosis: z.string(),
+  fix: z.string(),
+  level: z.string(),
+  score: z.number(),
+});
 
-// Loading messages for Narrator mode
-const narratorLoadingMessages = [
-  "Reading the diff...",
-  "Analyzing impact...",
-  "Summarizing changes...",
-  "Drafting release notes...",
-  "Formatting markdown...",
-];
-
-interface TastingNote {
-  title: string;
-  diagnosis: string;
-  fix: string;
-  level: string;
-  score: number;
-}
-
-interface PRDescription {
-  title: string;
-  summary: string;
-  type: "feat" | "fix" | "chore" | "refactor" | "docs" | "style" | "test" | "perf";
-  changes: string[];
-  impact: string;
-  testing: string;
-}
-
-interface ApiError {
-  message: string;
-  status?: number;
-  details?: Array<{ field: string; message: string }>;
-}
+const prDescriptionSchema = z.object({
+  title: z.string(),
+  summary: z.string(),
+  type: z.enum(["feat", "fix", "chore", "refactor", "docs", "style", "test", "perf"]),
+  changes: z.array(z.string()),
+  impact: z.string(),
+  testing: z.string(),
+});
 
 type AppMode = "roast" | "narrate";
 
 export default function Home() {
   const [mode, setMode] = useState<AppMode>("roast");
   const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [tastingNote, setTastingNote] = useState<TastingNote | null>(null);
-  const [prDescription, setPrDescription] = useState<PRDescription | null>(null);
-  const [error, setError] = useState<ApiError | null>(null);
-  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   const { toast } = useToast();
+
+  const {
+    object: tastingNote,
+    submit: submitRoast,
+    isLoading: isRoasting,
+    error: roastError,
+  } = useObject({
+    api: "/api/decant",
+    schema: tastingNoteSchema,
+    onError: () => {
+      toast({ title: "Error", description: "Failed to generate roast.", variant: "destructive" });
+    }
+  });
+
+  const {
+    object: prDescription,
+    submit: submitNarrate,
+    isLoading: isNarrating,
+    error: narrateError,
+  } = useObject({
+    api: "/api/narrate",
+    schema: prDescriptionSchema,
+    onError: () => {
+      toast({ title: "Error", description: "Failed to generate description.", variant: "destructive" });
+    }
+  });
+
+  const loading = isRoasting || isNarrating;
+  const error = roastError || narrateError;
 
   const handleModeChange = (newMode: AppMode) => {
     setMode(newMode);
-    setTastingNote(null);
-    setPrDescription(null);
-    setError(null);
-    // Optional: Clear code or keep it? Keeping it is usually better UX.
   };
 
   const handleSubmit = async () => {
     if (!code.trim()) {
       toast({
         title: "Empty Input",
-        description: mode === "roast" ? "Please paste some code to decant." : "Please paste a diff or code to narrate.",
+        description: "Please paste some code first.",
         variant: "destructive",
       });
       return;
     }
 
-    setLoading(true);
-    setTastingNote(null);
-    setPrDescription(null);
-    setError(null);
-
-    const messages = mode === "roast" ? roastLoadingMessages : narratorLoadingMessages;
-
-    // Cycle through loading messages
-    const messageInterval = setInterval(() => {
-      setLoadingMessageIndex((prev) => (prev + 1) % messages.length);
-    }, 800);
-
-    try {
-      const endpoint = mode === "roast" ? "/api/decant" : "/api/narrate";
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ code }),
-      });
-
-      if (!response.ok) {
-        let errorData: any;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
-        }
-
-        const apiError: ApiError = {
-          message: errorData.error || "Failed to process request",
-          status: response.status,
-          details: errorData.details,
-        };
-
-        if (response.status === 429) {
-          apiError.message = "Rate limit exceeded. Please wait a minute.";
-        }
-
-        setError(apiError);
-        toast({
-          title: "Processing Failed",
-          description: apiError.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const data = await response.json();
-
-      if (mode === "roast") {
-        setTastingNote(data);
-      } else {
-        setPrDescription(data);
-      }
-
-      setError(null);
-    } catch (error) {
-      console.error("Error processing request:", error);
-
-      const apiError: ApiError = {
-        message: error instanceof Error
-          ? error.message
-          : "Failed to connect. Please check your internet connection.",
-      };
-
-      setError(apiError);
-      toast({
-        title: "Request Failed",
-        description: apiError.message,
-        variant: "destructive",
-      });
-    } finally {
-      clearInterval(messageInterval);
-      setLoading(false);
-      setLoadingMessageIndex(0);
+    if (mode === "roast") {
+      submitRoast({ code });
+    } else {
+      submitNarrate({ code });
     }
   };
 
@@ -202,39 +127,34 @@ export default function Home() {
         {/* Left Side - Input */}
         <div className="flex flex-col min-h-[300px] md:h-full md:max-h-full overflow-hidden">
           <div className="flex-1 flex flex-col space-y-4 md:overflow-hidden">
-            <Textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder={mode === "roast"
-                ? "Paste your code here... The analysis will check for errors, memory leaks, scalability issues, and anti-patterns."
-                : "Paste your raw code or `git diff` here to generate a professional Pull Request description."
-              }
-              className={`flex-1 min-h-[200px] md:min-h-0 md:overflow-y-auto border-zinc-800 bg-zinc-900/50 font-mono text-sm text-zinc-100 placeholder:text-zinc-500 focus:ring-1 resize-none ${mode === "roast" ? "focus:border-amber-500 focus:ring-amber-500" : "focus:border-indigo-500 focus:ring-indigo-500"
-                }`}
-              disabled={loading}
-            />
+            <div className={`flex-1 min-h-[200px] md:min-h-0 md:overflow-y-auto border rounded-md ${mode === "roast"
+              ? "border-zinc-800 focus-within:border-amber-500 focus-within:ring-1 focus-within:ring-amber-500"
+              : "border-zinc-800 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500"
+              } bg-zinc-900/50 transition-colors duration-200`}>
+              <CodeEditor
+                value={code}
+                onChange={setCode}
+                mode={mode === "narrate" ? "diff" : "code"}
+                placeholder={mode === "roast"
+                  ? "Paste your code here... The analysis will check for errors, memory leaks, scalability issues, and anti-patterns."
+                  : "Paste your raw code or `git diff` here to generate a professional Pull Request description."
+                }
+                disabled={loading}
+                className="h-full border-none bg-transparent"
+              />
+            </div>
             <Button
               onClick={handleSubmit}
               disabled={loading}
               className={`font-mono transition-all duration-300 ease-in-out hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] text-white disabled:opacity-50 ${mode === "roast"
-                  ? "bg-amber-600 hover:bg-amber-700 hover:shadow-amber-600/30"
-                  : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-600/30"
+                ? "bg-amber-600 hover:bg-amber-700 hover:shadow-amber-600/30"
+                : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-600/30"
                 }`}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="animate-spin">{mode === "roast" ? "🍷" : "⚡"}</span>
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={loadingMessageIndex}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {(mode === "roast" ? roastLoadingMessages : narratorLoadingMessages)[loadingMessageIndex]}
-                    </motion.span>
-                  </AnimatePresence>
+                  <span>{mode === "roast" ? "Roasting..." : "Narrating..."}</span>
                 </span>
               ) : (
                 mode === "roast" ? "Decant Code" : "Narrate PR"
@@ -250,9 +170,11 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="h-full"
+              className="h-full flex items-center justify-center p-8"
             >
-              <Skeleton className="h-full w-full" />
+              <div className="text-zinc-500 font-mono animate-pulse">
+                Thinking...
+              </div>
             </motion.div>
           )}
 
@@ -275,39 +197,16 @@ export default function Home() {
                         <p className="font-mono text-sm text-red-300 leading-relaxed">
                           {error.message}
                         </p>
-                        {error.status && (
-                          <p className="font-mono text-xs text-red-400/70">
-                            Status Code: {error.status}
-                          </p>
-                        )}
-                        {error.details && error.details.length > 0 && (
-                          <div className="mt-4 space-y-2">
-                            <p className="font-mono text-xs font-semibold text-red-400 uppercase">
-                              Details:
-                            </p>
-                            <ul className="space-y-1">
-                              {error.details.map((detail, index) => (
-                                <li
-                                  key={index}
-                                  className="font-mono text-xs text-red-300/80 pl-4"
-                                >
-                                  <span className="text-red-400">
-                                    {detail.field}:
-                                  </span>{" "}
-                                  {detail.message}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
                   <Button
                     onClick={() => {
-                      setError(null);
-                      setTastingNote(null);
-                      setPrDescription(null);
+                      if (mode === "roast") {
+                        submitRoast(null);
+                      } else {
+                        submitNarrate(null);
+                      }
                     }}
                     className="w-full bg-red-900/30 text-red-400 border border-red-900/50 hover:bg-red-900/50 font-mono"
                   >
@@ -318,16 +217,16 @@ export default function Home() {
             )}
 
             {/* Code Roast Output */}
-            {mode === "roast" && tastingNote && !loading && !error && (
+            {mode === "roast" && tastingNote && (
               <div className="h-full overflow-y-auto">
-                <TastingCard tastingNote={tastingNote} />
+                <TastingCard tastingNote={tastingNote as any} />
               </div>
             )}
 
             {/* PR Narrator Output */}
-            {mode === "narrate" && prDescription && !loading && !error && (
+            {mode === "narrate" && prDescription && (
               <div className="h-full overflow-y-auto">
-                <NarratorCard description={prDescription} />
+                <NarratorCard description={prDescription as any} />
               </div>
             )}
           </AnimatePresence>

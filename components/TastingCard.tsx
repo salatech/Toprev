@@ -12,14 +12,14 @@ import { Button } from "@/components/ui/button";
 // Simple markdown formatter
 const formatMarkdown = (text: string) => {
   if (!text) return text;
-  
+
   // Split by lines to handle code blocks
   const lines = text.split('\n');
   const formatted: ReactElement[] = [];
-  
+
   let inCodeBlock = false;
   let codeBlockContent: string[] = [];
-  
+
   lines.forEach((line, index) => {
     // Handle code blocks
     if (line.trim().startsWith('```')) {
@@ -40,17 +40,17 @@ const formatMarkdown = (text: string) => {
       }
       return;
     }
-    
+
     if (inCodeBlock) {
       codeBlockContent.push(line);
       return;
     }
-    
+
     // Handle inline code and bold text
     let processedLine = line;
     const codeParts: (string | ReactElement)[] = [];
     let keyCounter = 0;
-    
+
     // Process inline code first
     const codeMatches = Array.from(processedLine.matchAll(/`([^`]+)`/g));
     if (codeMatches.length > 0) {
@@ -74,7 +74,7 @@ const formatMarkdown = (text: string) => {
     } else {
       codeParts.push(processedLine);
     }
-    
+
     // Handle bold text
     const finalParts: (string | ReactElement)[] = [];
     codeParts.forEach((part, partIndex) => {
@@ -106,7 +106,7 @@ const formatMarkdown = (text: string) => {
         finalParts.push(part);
       }
     });
-    
+
     if (finalParts.length > 0 || processedLine.trim() === '') {
       formatted.push(
         <p key={`line-${index}`} className="mb-2 last:mb-0">
@@ -115,7 +115,7 @@ const formatMarkdown = (text: string) => {
       );
     }
   });
-  
+
   // Handle any remaining code block
   if (inCodeBlock && codeBlockContent.length > 0) {
     formatted.push(
@@ -126,7 +126,7 @@ const formatMarkdown = (text: string) => {
       </pre>
     );
   }
-  
+
   return formatted.length > 0 ? formatted : <p>{text}</p>;
 };
 
@@ -212,7 +212,7 @@ export function TastingCard({ tastingNote }: TastingCardProps) {
         className="relative border-amber-900/50 bg-zinc-950/95 backdrop-blur-sm h-full flex flex-col overflow-hidden"
       >
         <CardHeader className="space-y-4 border-b border-amber-900/30 pb-4 flex-shrink-0">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div className="space-y-2 flex-1">
               <CardTitle className="font-mono text-xl text-amber-500">
                 {tastingNote.title}
@@ -221,13 +221,48 @@ export function TastingCard({ tastingNote }: TastingCardProps) {
                 {tastingNote.level}
               </Badge>
             </div>
-            <Badge
-              className={`${getScoreColor(
-                tastingNote.score
-              )} border font-mono text-lg font-bold`}
-            >
-              {tastingNote.score}/100
-            </Badge>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex gap-1">
+                <Button
+                  onClick={() => {
+                    const text = `My code just got roasted by TopRev. Scored ${tastingNote.score}/100.\n\n"${tastingNote.title}"\n\n💀 Fix your code here:`;
+                    const url = "https://toprev.vercel.app";
+                    window.open(
+                      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+                      "_blank"
+                    );
+                  }}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
+                  title="Share on Twitter"
+                >
+                  <svg
+                    className="h-4 w-4 fill-current"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zl-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                </Button>
+                <Button
+                  onClick={handleDownload}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
+                  title="Download Image"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
+              <Badge
+                className={`${getScoreColor(
+                  tastingNote.score
+                )} border font-mono text-lg font-bold`}
+              >
+                {tastingNote.score}/100
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent ref={cardContentRef} className="pt-4 flex-1 overflow-y-auto">
@@ -248,17 +283,7 @@ export function TastingCard({ tastingNote }: TastingCardProps) {
             </div>
           </div>
         </CardContent>
-        <div className="absolute right-4 top-4">
-          <Button
-            onClick={handleDownload}
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
-            title="Share / Save Image"
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-        </div>
+
       </Card>
     </motion.div>
   );
