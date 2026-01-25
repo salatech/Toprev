@@ -268,32 +268,49 @@ export default function Home() {
                 exit={{ opacity: 0, y: -20 }}
                 className="h-full flex flex-col items-center justify-center p-8"
               >
-                <div className="w-full max-w-2xl space-y-4">
-                  <div className="border border-red-900/50 bg-red-950/20 rounded-lg p-6 space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="text-red-500 text-2xl">⚠️</div>
-                      <div className="flex-1 space-y-2">
-                        <h3 className="font-mono text-lg font-semibold text-red-400">
-                          Error
-                        </h3>
-                        <p className="font-mono text-sm text-red-300 leading-relaxed">
-                          {error.message}
-                        </p>
-                      </div>
+                <div className="w-full max-w-xl space-y-6">
+                  <div className="border border-red-900/50 bg-red-950/10 rounded-xl p-8 text-center space-y-4 shadow-2xl shadow-red-900/20">
+                    <div className="mx-auto w-16 h-16 rounded-full bg-red-900/20 flex items-center justify-center mb-4">
+                      <span className="text-4xl">
+                        {error.message.includes("503") || error.message.toLowerCase().includes("busy") ? "🤯" : "⚠️"}
+                      </span>
                     </div>
+
+                    <h3 className="font-mono text-xl font-bold text-red-400">
+                      {error.message.includes("503") || error.message.toLowerCase().includes("busy")
+                        ? "The AI is Overwhelmed"
+                        : "Something went wrong"}
+                    </h3>
+
+                    <p className="font-mono text-sm text-red-300/80 leading-relaxed max-w-sm mx-auto">
+                      {error.message.includes("503") || error.message.toLowerCase().includes("busy")
+                        ? "Too many developers are roasting their code right now. The neural networks are smoking. Please give it a moment and try again."
+                        : error.message}
+                    </p>
                   </div>
-                  <Button
-                    onClick={() => {
-                      if (mode === "roast") {
-                        submitRoast(null);
-                      } else {
-                        submitNarrate(null);
-                      }
-                    }}
-                    className="w-full bg-red-900/30 text-red-400 border border-red-900/50 hover:bg-red-900/50 font-mono"
-                  >
-                    Dismiss
-                  </Button>
+
+                  <div className="flex gap-4 justify-center">
+                    <Button
+                      onClick={() => {
+                        if (mode === "roast") {
+                          submitRoast(null);
+                        } else {
+                          submitNarrate(null);
+                        }
+                      }}
+                      className="bg-zinc-800 text-zinc-400 hover:bg-zinc-700 font-mono"
+                    >
+                      Dismiss
+                    </Button>
+                    <Button
+                      onClick={handleSubmit}
+                      className={`font-mono ${mode === "roast"
+                        ? "bg-amber-600 hover:bg-amber-700 text-white"
+                        : "bg-indigo-600 hover:bg-indigo-700 text-white"}`}
+                    >
+                      Try Again
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             )}

@@ -2,6 +2,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamObject } from "ai";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Octokit } from "octokit";
 
 // Rate limiting (simplified for brevity, share logic in production)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -46,7 +47,37 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { code, context } = requestSchema.parse(body);
+        let { code, context } = requestSchema.parse(body);
+
+        // Check if input is a GitHub PR URL
+        if (code.startsWith("https://github.com/") && code.includes("/pull/")) {
+            try {
+                const urlParts = code.split("/");
+                const owner = urlParts[3];
+                const repo = urlParts[4];
+                const pullNumber = parseInt(urlParts[6]);
+
+                if (owner && repo && pullNumber) {
+                    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+                    const { data: files } = await octokit.rest.pulls.listFiles({
+                        owner,
+                        repo,
+                        pull_number: pullNumber,
+                    });
+
+                    let prContent = `GitHub PR: ${owner}/${repo} #${pullNumber}\n\n`;
+                    for (const file of files) {
+                        if (file.status === "removed") continue;
+                        prContent += `File: ${file.filename} (${file.status})\n\`\`\`${file.filename.split('.').pop()}\n${file.patch || "No patch available"}\n\`\`\`\n\n`;
+                    }
+
+                    code = prContent.slice(0, 48000);
+                    if (prContent.length > 48000) code += "\n... (truncated)";
+                }
+            } catch (err) {
+                console.error("Failed to fetch GitHub PR:", err);
+            }
+        }
 
         console.log("Narrate: Body parsed");
 
