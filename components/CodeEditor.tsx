@@ -64,13 +64,45 @@ export function CodeEditor({
         return highlight(code, languages.js, "javascript");
     };
 
+    const [isDragging, setIsDragging] = React.useState(false);
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) {
+            const file = files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result && typeof event.target.result === 'string') {
+                    onChange(event.target.result);
+                }
+            };
+            reader.readAsText(file);
+        }
+    };
+
     return (
         <div
             className={`relative font-mono text-sm border rounded-md overflow-auto bg-zinc-950 ${disabled ? "opacity-50 cursor-not-allowed" : ""
-                } ${className}`}
+                } ${isDragging ? "border-indigo-500 bg-indigo-950/20" : ""} ${className}`}
             style={{
                 // Custom scrollbar styling could go here or in global css
             }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
         >
             <Editor
                 value={value}

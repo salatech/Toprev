@@ -138,8 +138,8 @@ export default function Home() {
                 onChange={setCode}
                 mode={mode === "narrate" ? "diff" : "code"}
                 placeholder={mode === "roast"
-                  ? "Paste your code here... The analysis will check for errors, memory leaks, scalability issues, and anti-patterns."
-                  : "Paste your raw code or `git diff` here to generate a professional Pull Request description."
+                  ? "Paste your code here, or drag & drop a file... The analysis will check for errors, memory leaks, scalability issues, and anti-patterns."
+                  : "Paste your raw code or `git diff` here, or drag & drop a file to generate a professional Pull Request description."
                 }
                 disabled={loading}
                 className="h-full border-none bg-transparent"
