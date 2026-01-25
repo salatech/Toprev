@@ -177,12 +177,22 @@ export function TastingCard({ tastingNote, originalCode }: TastingCardProps) {
         fixContainerRef.current.style.overflow = "visible";
       }
 
+      // Add Watermark Footer
+      const watermark = document.createElement('div');
+      watermark.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 1px solid rgba(120, 53, 15, 0.3); margin-top: 20px;">
+          <span style="font-family: monospace; font-size: 14px; font-weight: bold; color: #f59e0b;">toprev.space</span>
+          <span style="font-family: monospace; font-size: 12px; color: #71717a;">Code Review by Top 0.1% Engineer</span>
+        </div>
+      `;
+      cardContentRef.current.appendChild(watermark);
+
       // Wait for layout to update
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const dataUrl = await toPng(cardRef.current, {
         quality: 1.0,
-        pixelRatio: 2,
+        pixelRatio: 3, // Higher resolution
         backgroundColor: "#09090b",
         style: {
           transform: "scale(1)",
@@ -190,20 +200,29 @@ export function TastingCard({ tastingNote, originalCode }: TastingCardProps) {
       });
 
       const link = document.createElement("a");
-      link.download = `tasting-note-${tastingNote.title.replace(/\s+/g, "-").toLowerCase()}.png`;
+      link.download = `toprev-roast-${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
+
+      // Remove watermark
+      cardContentRef.current.removeChild(watermark);
+
     } catch (error) {
       console.error("Failed to download image:", error);
     } finally {
       // Restore original styles
-      cardRef.current.style.overflow = originalCardOverflow;
-      cardRef.current.style.height = originalCardHeight;
-      cardContentRef.current.style.overflow = originalContentOverflow;
+      if (cardRef.current) {
+        cardRef.current.style.overflow = originalCardOverflow;
+        cardRef.current.style.height = originalCardHeight;
+      }
+      if (cardContentRef.current) {
+        cardContentRef.current.style.overflow = originalContentOverflow;
+      }
 
       if (fixContainerRef.current) {
         fixContainerRef.current.style.maxHeight = originalFixMaxHeight || '';
         fixContainerRef.current.style.overflow = originalFixOverflow || '';
+        fixContainerRef.current.style.maxHeight = originalFixMaxHeight || '';
       }
     }
   };
@@ -261,7 +280,7 @@ export function TastingCard({ tastingNote, originalCode }: TastingCardProps) {
                 <Button
                   onClick={() => {
                     const text = `My code just got roasted by TopRev. Scored ${tastingNote.score}/100.\n\n"${tastingNote.title}"\n\n💀 Fix yours at:`;
-                    const url = "https://toprev.vercel.app";
+                    const url = "https://toprev.space";
                     window.open(
                       `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
                       "_blank"

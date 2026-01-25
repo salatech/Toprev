@@ -172,7 +172,7 @@ ${description.testing}
                     <Button
                         onClick={() => {
                             const text = `Just generated a PR description for "${description.title}" using TopRev AI Narrator ⚡ #DeveloperTools`;
-                            const url = "https://toprev.vercel.app";
+                            const url = "https://toprev.space";
                             window.open(
                                 `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
                                 "_blank"

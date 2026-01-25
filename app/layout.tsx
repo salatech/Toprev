@@ -51,21 +51,21 @@ export const metadata: Metadata = {
   ],
   creator: "Solahudeen Babatunde Abdulrahmon",
   publisher: "Solahudeen Babatunde Abdulrahmon",
-  metadataBase: new URL("https://toprev.vercel.app"),
+  metadataBase: new URL("https://toprev.space"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://toprev.vercel.app",
+    url: "https://toprev.space",
     siteName: "TopRev",
     title: "TopRev - Code Review by Top 0.1% Engineer",
     description:
       "Get brutal, honest code reviews powered by AI trained on top 0.1% Principal Engineers. Analyze code complexity, find bugs, security issues, and anti-patterns. Created by Solahudeen Babatunde Abdulrahmon.",
     images: [
       {
-        url: "https://toprev.vercel.app/og-image.png",
+        url: "https://toprev.space/og-image.png",
         width: 1200,
         height: 630,
         alt: "TopRev - AI Code Review Tool",
@@ -77,7 +77,7 @@ export const metadata: Metadata = {
     title: "TopRev - Code Review by Top 0.1% Engineer",
     description:
       "Get brutal, honest code reviews powered by AI. Analyze code complexity, security, and best practices. By Solahudeen Babatunde Abdulrahmon.",
-    images: ["https://toprev.vercel.app/og-image.png"],
+    images: ["https://toprev.space/og-image.png"],
     creator: "@your_twitter_handle", // Update with your Twitter handle
   },
   robots: {
