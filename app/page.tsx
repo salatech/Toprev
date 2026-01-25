@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Flame, GitPullRequest } from "lucide-react";
 import { HistorySidebar, HistoryItem } from "@/components/HistorySidebar";
+import { useAuth } from "@/components/AuthProvider";
+import { LoginModal } from "@/components/LoginModal";
 
 // Schemas matching backend
 const tastingNoteSchema = z.object({
@@ -48,9 +50,11 @@ export default function Home() {
   const [persona, setPersona] = useState<RoasterPersona>("principal");
   const [code, setCode] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth(); // Auth hook
 
   const [newItem, setNewItem] = useState<HistoryItem | undefined>(undefined);
   const [viewedHistoryItem, setViewedHistoryItem] = useState<HistoryItem | undefined>(undefined);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const {
     object: tastingNote,
@@ -129,6 +133,16 @@ export default function Home() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Check usage limit for guests
+    if (!user) {
+      const usageCount = parseInt(localStorage.getItem("toprev_guest_usage") || "0");
+      if (usageCount >= 3) {
+        setShowLoginModal(true);
+        return;
+      }
+      localStorage.setItem("toprev_guest_usage", (usageCount + 1).toString());
     }
 
     if (mode === "roast") {
@@ -345,6 +359,7 @@ export default function Home() {
           )}
         </div>
       </div>
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </div>
   );
 }
