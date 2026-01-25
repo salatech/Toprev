@@ -1,244 +1,106 @@
 # TopRev
 
-**TopRev** - AI-powered code review tool that provides brutal, honest code analysis by top 0.1% Principal Engineers. Get technical insights, identify bugs, security vulnerabilities, and anti-patterns with actionable fixes.
+**TopRev** is an advanced AI code review platform that provides "brutal, honest" technical analysis by simulating top-tier engineering personas. It goes beyond simple linting to offer architectural feedback, security audits, and scalability checks with a premium, gamified experience.
 
-Created by **Solahudeen Babatunde Abdulrahmon**
+![TopRev UI](public/og-image.png)
 
-##  Features
+## Features
 
-- **AI-Powered Code Analysis**: Powered by Google Gemini AI, trained on top-tier engineering principles
-- **Brutal Honest Reviews**: Get unfiltered, technically precise feedback on your code
-- **Comprehensive Analysis**: Checks for:
-  - Time & space complexity (Big O)
-  - Memory leaks
-  - Scalability bottlenecks
-  - Security vulnerabilities
-  - Architectural and design anti-patterns
-- **Actionable Fixes**: Each review includes specific, beginner-friendly refactoring suggestions
-- **Skill Level Assessment**: Get an estimate of your coding skill level
-- **Score Rating**: Receive a 0-100 score based on code quality
-- **Download Reviews**: Export your code reviews as PNG images
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Dark Luxury UI**: Beautiful dark theme with amber/gold accents
+### AI Code Roasting
 
-##  Tech Stack
+Get unfiltered feedback from 4 distinct personas:
 
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS v4 + shadcn/ui (New York style)
-- **AI Provider**: Google Gemini API (gemini-2.5-flash)
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **Image Export**: html-to-image
-- **Validation**: Zod
-- **Fonts**: 
-  - Playfair Display (headings)
-  - Geist Sans (UI)
-  - Geist Mono (code)
+- **The Principal**: Brutal, high-standards, performance-obsessed.
+- **The VC Founder**: Focused on "investability", buzzwords, and scale.
+- **The Paranoiac**: Audits for security holes (XSS, Injection, PII).
+- **The Clean Coder**: Obsessive about DRY, SOLID, and naming conventions.
 
-##  Prerequisites
+### PR Narrator
 
-- Node.js 18+ 
-- npm, yarn, pnpm, or bun
-- Google Gemini API key ([Get one here](https://makersuite.google.com/app/apikey))
+Turn raw code diffs into professional Pull Request descriptions instantly.
 
-##  Installation
+- **Auto-Summarization**: Generates executive summaries of changes.
+- **Impact Analysis**: Identifies potential risks and breaking changes.
+- **Testing Steps**: Suggests verification steps for QA.
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd toprev
-   ```
+### GitHub Integration
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   # or
-   yarn install
-   # or
-   pnpm install
-   ```
+- **Paste & Roast**: Paste a GitHub PR URL (e.g., `https://github.com/owner/repo/pull/123`) to analyze the entire diff automatically.
+- **Diff Parsing**: Automatically fetches and parses file patches via GitHub API.
 
-3. **Set up environment variables**
-   
-   Create a `.env.local` file in the root directory:
-   ```env
-   API_KEY=your_gemini_api_key_here
-   ```
+### Cloud History & Sync
 
-4. **Run the development server**
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   # or
-   pnpm dev
-   ```
+- **Firebase Sync**: Login with Google to sync your roast history across devices.
+- **Guest Fallback**: Guest history is stored locally (LS).
+- **Usage Limits**: Guests get 2 free roasts before being prompted to sign in.
 
-5. **Open your browser**
-   
-   Navigate to [http://localhost:3000](http://localhost:3000)
+### Social Sharing
 
-##  Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `API_KEY` | Your API key | Yes |
-
-## Usage
-
-1. **Paste your code** in the left textarea
-2. **Click "Decant Code"** to analyze
-3. **Review the analysis** on the right side, which includes:
-   - **Title**: A sarcastic, technical title for your code
-   - **Diagnosis**: Technical explanation of what's wrong (or right)
-   - **Fix**: Actionable improvement with before/after examples
-   - **Level**: Estimated skill level (Junior, Mid-Level, Senior, etc.)
-   - **Score**: Code quality rating (0-100)
-4. **Download** the review as a PNG image if needed
-
-## API Endpoint
-
-### POST `/api/decant`
-
-Analyzes code and returns a review.
-
-**Request:**
-```json
-{
-  "code": "your code here"
-}
-```
-
-**Response:**
-```json
-{
-  "title": "The O(n²) Disaster",
-  "diagnosis": "This nested loop creates quadratic time complexity...",
-  "fix": "Use a HashMap to reduce complexity to O(1)...",
-  "level": "Mid-Level",
-  "score": 65
-}
-```
-
-**Rate Limits:**
-- 10 requests per minute per IP address
-- Returns 429 status if exceeded
-
-**Security Features:**
-- Input validation with Zod
-- Rate limiting
-- Request size limits (100KB max)
-- Request timeout (30 seconds)
-- Secure error handling
-- Security headers (X-Content-Type-Options, X-Frame-Options, etc.)
-
-## Project Structure
-
-```
-toprev/
-├── app/
-│   ├── api/
-│   │   └── decant/
-│   │       └── route.ts          # API endpoint for code analysis
-│   ├── globals.css               # Global styles
-│   ├── layout.tsx                # Root layout with metadata
-│   └── page.tsx                  # Main page component
-├── components/
-│   ├── ui/                       # shadcn/ui components
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── textarea.tsx
-│   │   ├── badge.tsx
-│   │   ├── skeleton.tsx
-│   │   └── toast.tsx
-│   └── TastingCard.tsx           # Code review display component
-├── hooks/
-│   └── use-toast.ts              # Toast notification hook
-├── lib/
-│   └── utils.ts                  # Utility functions
-├── public/
-│   └── toprev.png                # App icon/favicon
-├── .env.local                    # Environment variables (not in git)
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-## Security
-
-- **Input Validation**: Zod schema validation for all inputs
-- **Rate Limiting**: In-memory rate limiting (10 req/min per IP)
-- **Request Size Limits**: Maximum 100KB payload
-- **Timeout Protection**: 30-second timeout for AI requests
-- **Error Handling**: Secure error messages (no sensitive data leakage)
-- **Security Headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
-- **Content-Type Validation**: Only accepts application/json
-
-**Note**: For production, consider using Redis for distributed rate limiting.
-
-## Deployment
-
-### Deploy to Vercel
-
-1. **Push your code to GitHub**
-
-2. **Import project to Vercel**
-   - Go to [vercel.com](https://vercel.com)
-   - Click "New Project"
-   - Import your repository
-
-3. **Add environment variables**
-   - In Vercel project settings, add `API_KEY`
-
-4. **Deploy**
-   - Vercel will automatically deploy on push
-
-### Other Platforms
-
-The app can be deployed to any platform that supports Next.js:
-- Netlify
-- Railway
-- AWS Amplify
-- DigitalOcean App Platform
-
-Make sure to set the `API_KEY` environment variable in your deployment platform.
-
-## Development
-
-```bash
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run linter
-npm run lint
-```
-
-##  License
-
-This project is private and proprietary.
-
-##  Author
-
-**Solahudeen Babatunde Abdulrahmon**
-
-- Software Engineer
-- Code Reviewer
-
-##  Contributing
-
-This is a private project. Contributions are not currently accepted.
-
-## Support
-
-For issues or questions, please contact the author.
+- **Branded Cards**: Generate high-resolution (3x pixel ratio) images of your roast.
+- **Virality**: One-click sharing to Twitter/X with "Beat my Score" challenges.
 
 ---
 
-**TopRev** - Code Review by Top 0.1% Engineer
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4 + Motion (Framer Motion)
+- **AI**: Google Gemini Pro (via Vercel AI SDK)
+- **Database**: Firebase Firestore (NoSQL)
+- **Auth**: Firebase Auth (Google Provider)
+- **GitHub API**: Octokit
+- **Image Gen**: html-to-image
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- Firebase Project
+- Google Gemini API Key
+
+### Installation
+
+1. **Clone the repo**
+
+   ```bash
+   git clone https://github.com/salatech/Toprev.git
+   cd Toprev
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Set up Environment Variables**
+   Create a `.env` 
+
+
+4. **Run Development Server**
+   ```bash
+   npm run dev
+   ```
+
+---
+
+## Security
+
+- **Rate Limiting**: 10 requests/minute per IP.
+- **Input Validation**: Strict Zod schemas for all API inputs (max 50k chars).
+- **Auth Rules**: Firestore security rules ensure users can only access their own history.
+- **Guest Limits**: Strict 2-request limit for unauthenticated users tracked client-side.
+
+---
+
+## Contributing
+
+This project is currently closed source / private.
+
+## License
+
+Copyright © 2026 Solahudeen Babatunde Abdulrahmon. All rights reserved.
