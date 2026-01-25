@@ -11,6 +11,7 @@ import { NarratorCard } from "@/components/NarratorCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Flame, GitPullRequest } from "lucide-react";
+import { HistorySidebar, HistoryItem } from "@/components/HistorySidebar";
 
 // Schemas matching backend
 const tastingNoteSchema = z.object({
@@ -33,11 +34,23 @@ const prDescriptionSchema = z.object({
 });
 
 type AppMode = "roast" | "narrate";
+type RoasterPersona = "principal" | "vc" | "security" | "clean";
+
+const personas: Record<RoasterPersona, { name: string; icon: string; desc: string }> = {
+  principal: { name: "The Principal", icon: "💀", desc: "Brutal, high-standards, performance obsessed." },
+  vc: { name: "The VC Founder", icon: "🦄", desc: "Buzzwords, scale, 'where is the AI?'." },
+  security: { name: "The Paranoiac", icon: "🛡️", desc: "Trusts nothing. Assumes you've already been hacked." },
+  clean: { name: "The Clean Coder", icon: "✨", desc: "Naming, formatting, DRY, SOLID. Nitpicky." },
+};
 
 export default function Home() {
   const [mode, setMode] = useState<AppMode>("roast");
+  const [persona, setPersona] = useState<RoasterPersona>("principal");
   const [code, setCode] = useState("");
   const { toast } = useToast();
+
+  const [newItem, setNewItem] = useState<HistoryItem | undefined>(undefined);
+  const [viewedHistoryItem, setViewedHistoryItem] = useState<HistoryItem | undefined>(undefined);
 
   const {
     object: tastingNote,
@@ -47,6 +60,19 @@ export default function Home() {
   } = useObject({
     api: "/api/decant",
     schema: tastingNoteSchema,
+    onFinish: ({ object }) => {
+      if (object) {
+        setNewItem({
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          mode: "roast",
+          code,
+          result: object,
+          persona,
+          title: object.title,
+        });
+      }
+    },
     onError: () => {
       toast({ title: "Error", description: "Failed to generate roast.", variant: "destructive" });
     }
@@ -60,6 +86,18 @@ export default function Home() {
   } = useObject({
     api: "/api/narrate",
     schema: prDescriptionSchema,
+    onFinish: ({ object }) => {
+      if (object) {
+        setNewItem({
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          mode: "narrate",
+          code,
+          result: object,
+          title: object.title,
+        });
+      }
+    },
     onError: () => {
       toast({ title: "Error", description: "Failed to generate description.", variant: "destructive" });
     }
@@ -70,9 +108,20 @@ export default function Home() {
 
   const handleModeChange = (newMode: AppMode) => {
     setMode(newMode);
+    setViewedHistoryItem(undefined);
+  };
+
+  const handleHistorySelect = (item: HistoryItem) => {
+    setMode(item.mode);
+    setCode(item.code);
+    if (item.mode === "roast" && item.persona) {
+      setPersona(item.persona as RoasterPersona);
+    }
+    setViewedHistoryItem(item);
   };
 
   const handleSubmit = async () => {
+    setViewedHistoryItem(undefined); // Clear viewed item on new submission
     if (!code.trim()) {
       toast({
         title: "Empty Input",
@@ -83,14 +132,20 @@ export default function Home() {
     }
 
     if (mode === "roast") {
-      submitRoast({ code });
+      submitRoast({ code, persona });
     } else {
       submitNarrate({ code });
     }
   };
 
+  // Determine what to display: Live stream OR Viewed History
+  const activeTastingNote = viewedHistoryItem?.mode === "roast" ? viewedHistoryItem.result : tastingNote;
+  const activePrDescription = viewedHistoryItem?.mode === "narrate" ? viewedHistoryItem.result : prDescription;
+
   return (
     <div className="h-screen md:h-screen min-h-screen bg-zinc-950 flex flex-col overflow-hidden">
+      <HistorySidebar onSelect={handleHistorySelect} gameMode={mode} newItem={newItem} />
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -125,6 +180,28 @@ export default function Home() {
         </div>
       </div>
 
+      {mode === "roast" && (
+        <div className="flex justify-center pb-4 px-4">
+          <div className="flex flex-wrap justify-center gap-2">
+            {(Object.entries(personas) as [RoasterPersona, typeof personas['principal']][]).map(([key, data]) => (
+              <Button
+                key={key}
+                variant="outline"
+                size="sm"
+                onClick={() => setPersona(key)}
+                className={`text-xs font-mono gap-2 transition-all ${persona === key
+                  ? "border-amber-500/50 bg-amber-950/30 text-amber-400"
+                  : "border-zinc-800 bg-zinc-900/30 text-zinc-500 hover:border-amber-900/50 hover:text-amber-500/80"}`}
+                title={data.desc}
+              >
+                <span>{data.icon}</span>
+                <span className="hidden sm:inline">{data.name}</span>
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 overflow-y-auto md:overflow-hidden">
         {/* Left Side - Input */}
         <div className="flex flex-col min-h-[300px] md:h-full md:max-h-full overflow-hidden">
@@ -135,7 +212,10 @@ export default function Home() {
               } bg-zinc-900/50 transition-colors duration-200`}>
               <CodeEditor
                 value={code}
-                onChange={setCode}
+                onChange={(val) => {
+                  setCode(val);
+                  if (viewedHistoryItem) setViewedHistoryItem(undefined); // Clear history view on edit
+                }}
                 mode={mode === "narrate" ? "diff" : "code"}
                 placeholder={mode === "roast"
                   ? "Paste your code here, or drag & drop a file... The analysis will check for errors, memory leaks, scalability issues, and anti-patterns."
@@ -167,7 +247,7 @@ export default function Home() {
 
         {/* Right Side - Output */}
         <div className="flex flex-col min-h-[300px] md:h-full overflow-hidden">
-          {loading && !tastingNote && !prDescription && !error && (
+          {loading && !activeTastingNote && !activePrDescription && !error && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -219,21 +299,21 @@ export default function Home() {
             )}
 
             {/* Code Roast Output */}
-            {mode === "roast" && tastingNote && (
+            {mode === "roast" && activeTastingNote && (
               <div className="h-full overflow-y-auto">
-                <TastingCard tastingNote={tastingNote as any} originalCode={code} />
+                <TastingCard tastingNote={activeTastingNote as any} originalCode={code} />
               </div>
             )}
 
             {/* PR Narrator Output */}
-            {mode === "narrate" && prDescription && (
+            {mode === "narrate" && activePrDescription && (
               <div className="h-full overflow-y-auto">
-                <NarratorCard description={prDescription as any} />
+                <NarratorCard description={activePrDescription as any} />
               </div>
             )}
           </AnimatePresence>
 
-          {!loading && !tastingNote && !prDescription && !error && (
+          {!loading && !activeTastingNote && !activePrDescription && !error && (
             <div className="h-full flex flex-col items-center justify-center text-zinc-600 font-mono text-sm space-y-2 px-8 text-center">
               <p className="text-zinc-500">
                 {mode === "roast" ? "Code review will appear here" : "PR description will appear here"}

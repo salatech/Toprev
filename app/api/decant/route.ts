@@ -18,6 +18,7 @@ const requestSchema = z.object({
     .string()
     .min(10, "Code must be at least 10 characters")
     .max(50000, "Code must not exceed 50,000 characters"),
+  persona: z.enum(["principal", "vc", "security", "clean"]).optional().default("principal"),
 });
 
 // Response schema for streamObject
@@ -87,25 +88,49 @@ export async function POST(request: NextRequest) {
 
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: "Validation failed" },
+        { error: validationResult.error.errors[0].message },
         { status: 400 }
       );
     }
 
-    const { code } = validationResult.data;
+    const { code, persona } = validationResult.data;
 
     const google = createGoogleGenerativeAI({
       apiKey: process.env.API_KEY,
     });
 
+    let systemPrompt = "";
+    switch (persona) {
+      case "vc":
+        systemPrompt = `You are a **Venture Capitalist / Founder**.
+Tone: Buzzword-heavy, obsessed with scale, AI, and valuation. 
+Task: Analyze if this code is "investible" or "scalable". Ignore low-level details, focus on "The Vision".
+Critique lack of AI, blockchain, or viral loops.`;
+        break;
+      case "security":
+        systemPrompt = `You are a **Paranoid Security Researcher**.
+Tone: Alarming, suspicious, serious.
+Task: Audit this code ONLY for security vulnerabilities (XSS, Injection, PII leaks).
+Assume everything is a potential exploit vector.`;
+        break;
+      case "clean":
+        systemPrompt = `You are a **Clean Code Zealot**.
+Tone: Nitpicky, pedantic, obsessed with formatting and naming.
+Task: Analyze variable names, indentation, function length, and adherence to SOLID principles.`;
+        break;
+      case "principal":
+      default:
+        systemPrompt = `You are a **Top 1% Principal Software Engineer**.
+Tone: Blunt, brutally honest, sarcastic, technically precise.
+Task: Analyze the provided code for complexity, security, and scalability.`;
+        break;
+    }
+
     // Stream the object
     const result = streamObject({
-      model: google("gemini-2.5-flash-preview-09-2025"), // Updated to Gemini 2.5
+      model: google("gemini-2.5-flash-preview-09-2025"),
       schema: tastingNoteSchema,
-      prompt: `You are a **Top 1% Principal Software Engineer**.
-      
-Tone: Blunt, brutally honest, sarcastic, technically precise.
-Task: Analyze the provided code for complexity, security, and scalability.
+      prompt: `${systemPrompt}
 
 Code to Review:
 \`\`\`
@@ -113,9 +138,9 @@ ${code}
 \`\`\`
 
 Generate a JSON object with:
-- title: Sarcastic technical title
-- diagnosis: Technical analysis (2-3 sentences)
-- fix: Explanation of improvements
+- title: Sarcastic/Thematic title
+- diagnosis: Analysis based on your persona (2-3 sentences)
+- fix: Actionable improvement description
 - refactoredCode: The fixed version of the code (just the code)
 - language: The programming language detected (lowercase slug)
 - level: Estimated skill level
