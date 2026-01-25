@@ -24,7 +24,9 @@ const requestSchema = z.object({
 const tastingNoteSchema = z.object({
   title: z.string().describe("A sarcastic, technical title for the code"),
   diagnosis: z.string().describe("Technical explanation of what is wrong or right"),
-  fix: z.string().describe("Actionable improvement with before/after examples in markdown"),
+  fix: z.string().describe("Actionable improvement description"),
+  refactoredCode: z.string().describe("The refactored code block"),
+  language: z.string().describe("The programming language (e.g. javascript, python)"),
   level: z.string().describe("Estimated skill level of the author"),
   score: z.number().describe("Code quality rating from 0 to 100"),
 });
@@ -113,7 +115,9 @@ ${code}
 Generate a JSON object with:
 - title: Sarcastic technical title
 - diagnosis: Technical analysis (2-3 sentences)
-- fix: Specific actionable improvement (markdown supported)
+- fix: Explanation of improvements
+- refactoredCode: The fixed version of the code (just the code)
+- language: The programming language detected (lowercase slug)
 - level: Estimated skill level
 - score: 0-100 rating
 `,

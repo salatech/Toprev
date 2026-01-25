@@ -17,6 +17,8 @@ const tastingNoteSchema = z.object({
   title: z.string(),
   diagnosis: z.string(),
   fix: z.string(),
+  refactoredCode: z.string().optional(),
+  language: z.string().optional(),
   level: z.string(),
   score: z.number(),
 });
@@ -219,7 +221,7 @@ export default function Home() {
             {/* Code Roast Output */}
             {mode === "roast" && tastingNote && (
               <div className="h-full overflow-y-auto">
-                <TastingCard tastingNote={tastingNote as any} />
+                <TastingCard tastingNote={tastingNote as any} originalCode={code} />
               </div>
             )}
 

@@ -11,6 +11,7 @@ import "prismjs/components/prism-json";
 import "prismjs/components/prism-bash";
 import "prismjs/components/prism-markdown";
 import "prismjs/components/prism-diff";
+import "prismjs/components/prism-python";
 import "prismjs/themes/prism-tomorrow.css"; // Dark theme
 
 interface CodeEditorProps {
@@ -20,6 +21,7 @@ interface CodeEditorProps {
     disabled?: boolean;
     className?: string;
     mode?: "code" | "diff"; // Suggestion for syntax highlighting preference
+    language?: string;
 }
 
 export function CodeEditor({
@@ -29,16 +31,33 @@ export function CodeEditor({
     disabled,
     className,
     mode = "code",
+    language,
 }: CodeEditorProps) {
     const highlightCode = (code: string) => {
         if (mode === "diff") {
-            // Try to handle diff highlighting if possible, fallback to plain text or general code
-            // Prism diff requires extra setup usually, treating as generalized code for robustness fallback
-            // but we imported prism-diff so let's try it.
             try {
                 return highlight(code, languages.diff || languages.bash, "diff");
             } catch (e) {
                 return highlight(code, languages.js, "javascript"); // Fallback
+            }
+        }
+
+        if (language) {
+            const langMap: Record<string, any> = {
+                "javascript": languages.js,
+                "typescript": languages.ts || languages.js,
+                "js": languages.js,
+                "ts": languages.ts || languages.js,
+                "css": languages.css,
+                "json": languages.json,
+                "python": languages.python,
+                "bash": languages.bash,
+                "markdown": languages.markdown,
+                // Add more as needed
+            };
+            const prismLang = langMap[language.toLowerCase()];
+            if (prismLang) {
+                return highlight(code, prismLang, language);
             }
         }
 
@@ -47,7 +66,7 @@ export function CodeEditor({
 
     return (
         <div
-            className={`relative font-mono text-sm border rounded-md overflow-hidden bg-zinc-950 ${disabled ? "opacity-50 cursor-not-allowed" : ""
+            className={`relative font-mono text-sm border rounded-md overflow-auto bg-zinc-950 ${disabled ? "opacity-50 cursor-not-allowed" : ""
                 } ${className}`}
             style={{
                 // Custom scrollbar styling could go here or in global css

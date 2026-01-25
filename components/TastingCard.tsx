@@ -1,13 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Download } from "lucide-react";
-import { useRef } from "react";
+import { Download, Wand2, ArrowLeft, ArrowRightLeft, Copy, Check } from "lucide-react";
+import { useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { toPng } from "html-to-image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CodeEditor } from "@/components/CodeEditor";
 
 // Simple markdown formatter
 const formatMarkdown = (text: string) => {
@@ -134,36 +135,47 @@ interface TastingNote {
   title: string;
   diagnosis: string;
   fix: string;
+  refactoredCode?: string;
+  language?: string;
   level: string;
   score: number;
 }
 
 interface TastingCardProps {
   tastingNote: TastingNote;
+  originalCode?: string;
 }
 
-export function TastingCard({ tastingNote }: TastingCardProps) {
+export function TastingCard({ tastingNote, originalCode }: TastingCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const fixContainerRef = useRef<HTMLDivElement>(null);
   const cardContentRef = useRef<HTMLDivElement>(null);
 
+  const [viewMode, setViewMode] = useState<'analysis' | 'diff'>('analysis');
+  const [copied, setCopied] = useState(false);
+
   const handleDownload = async () => {
-    if (!cardRef.current || !fixContainerRef.current || !cardContentRef.current) return;
+    if (!cardRef.current || !cardContentRef.current) return;
 
     // Store original styles
     const originalCardOverflow = cardRef.current.style.overflow;
     const originalCardHeight = cardRef.current.style.height;
     const originalContentOverflow = cardContentRef.current.style.overflow;
-    const originalFixMaxHeight = fixContainerRef.current.style.maxHeight;
-    const originalFixOverflow = fixContainerRef.current.style.overflow;
+
+    // Also handle fix container if in analysis mode
+    const originalFixMaxHeight = fixContainerRef.current?.style.maxHeight;
+    const originalFixOverflow = fixContainerRef.current?.style.overflow;
 
     try {
       // Temporarily remove constraints to show full content
       cardRef.current.style.overflow = "visible";
       cardRef.current.style.height = "auto";
       cardContentRef.current.style.overflow = "visible";
-      fixContainerRef.current.style.maxHeight = "none";
-      fixContainerRef.current.style.overflow = "visible";
+
+      if (fixContainerRef.current) {
+        fixContainerRef.current.style.maxHeight = "none";
+        fixContainerRef.current.style.overflow = "visible";
+      }
 
       // Wait for layout to update
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -188,8 +200,11 @@ export function TastingCard({ tastingNote }: TastingCardProps) {
       cardRef.current.style.overflow = originalCardOverflow;
       cardRef.current.style.height = originalCardHeight;
       cardContentRef.current.style.overflow = originalContentOverflow;
-      fixContainerRef.current.style.maxHeight = originalFixMaxHeight;
-      fixContainerRef.current.style.overflow = originalFixOverflow;
+
+      if (fixContainerRef.current) {
+        fixContainerRef.current.style.maxHeight = originalFixMaxHeight || '';
+        fixContainerRef.current.style.overflow = originalFixOverflow || '';
+      }
     }
   };
 
@@ -205,7 +220,7 @@ export function TastingCard({ tastingNote }: TastingCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full"
+      className="w-full h-full"
     >
       <Card
         ref={cardRef}
@@ -217,15 +232,35 @@ export function TastingCard({ tastingNote }: TastingCardProps) {
               <CardTitle className="font-mono text-xl text-amber-500">
                 {tastingNote.title}
               </CardTitle>
-              <Badge className="bg-amber-900/30 text-amber-400 border-amber-700/50 font-mono text-xs">
-                {tastingNote.level}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-amber-900/30 text-amber-400 border-amber-700/50 font-mono text-xs">
+                  {tastingNote.level}
+                </Badge>
+                {tastingNote.refactoredCode && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-6 text-xs font-mono gap-1 ${viewMode === 'diff' ? 'bg-amber-900/50 text-amber-400' : 'text-zinc-500 hover:text-amber-400'}`}
+                    onClick={() => setViewMode(viewMode === 'analysis' ? 'diff' : 'analysis')}
+                  >
+                    {viewMode === 'analysis' ? (
+                      <>
+                        <Wand2 className="w-3 h-3" /> Fix It For Me
+                      </>
+                    ) : (
+                      <>
+                        <ArrowLeft className="w-3 h-3" /> Back to Analysis
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="flex flex-col items-end gap-2">
               <div className="flex gap-1">
                 <Button
                   onClick={() => {
-                    const text = `My code just got roasted by TopRev. Scored ${tastingNote.score}/100.\n\n"${tastingNote.title}"\n\n💀 Fix your code here:`;
+                    const text = `My code just got roasted by TopRev. Scored ${tastingNote.score}/100.\n\n"${tastingNote.title}"\n\n💀 Fix yours at:`;
                     const url = "https://toprev.vercel.app";
                     window.open(
                       `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
@@ -265,27 +300,77 @@ export function TastingCard({ tastingNote }: TastingCardProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent ref={cardContentRef} className="pt-4 flex-1 overflow-y-auto">
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-semibold text-amber-500 mb-2 font-mono uppercase">Technical Assessment:</p>
-              <div className="font-mono text-sm leading-relaxed text-zinc-300">
-                {formatMarkdown(tastingNote.diagnosis)}
+
+        <CardContent ref={cardContentRef} className="pt-4 flex-1 overflow-y-auto min-h-0">
+          {viewMode === 'analysis' ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-amber-500 mb-2 font-mono uppercase">Technical Assessment:</p>
+                <div className="font-mono text-sm leading-relaxed text-zinc-300">
+                  {formatMarkdown(tastingNote.diagnosis)}
+                </div>
               </div>
-            </div>
-            <div className="border-t border-amber-900/30 pt-4">
-              <p className="text-xs font-semibold text-amber-500 mb-2 font-mono uppercase">Fix:</p>
-              <div ref={fixContainerRef} className="max-h-[400px] overflow-y-auto pr-2">
-                <div className="font-mono text-sm text-zinc-400 break-words">
-                  {formatMarkdown(tastingNote.fix)}
+              <div className="border-t border-amber-900/30 pt-4">
+                <p className="text-xs font-semibold text-amber-500 mb-2 font-mono uppercase">Fix:</p>
+                <div ref={fixContainerRef} className="max-h-[400px] overflow-y-auto pr-2">
+                  <div className="font-mono text-sm text-zinc-400 break-words">
+                    {formatMarkdown(tastingNote.fix)}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col h-full gap-4">
+              <div className="flex-1 flex flex-col min-h-0">
+                <p className="text-xs font-semibold text-red-400 mb-2 font-mono uppercase flex items-center gap-2">
+                  Original Code
+                </p>
+                <div className="flex-1 border border-zinc-800 rounded-md overflow-hidden bg-zinc-950/50 overflow-y-auto">
+                  <CodeEditor
+                    value={originalCode || ""}
+                    onChange={() => { }}
+                    disabled={true}
+                    language={tastingNote.language}
+                    className="h-full border-none bg-transparent opacity-80"
+                  />
+                </div>
+              </div>
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-green-400 font-mono uppercase flex items-center gap-2">
+                    Refactored Code
+                  </p>
+                  {tastingNote.refactoredCode && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-zinc-500 hover:text-green-400 hover:bg-green-900/10"
+                      onClick={() => {
+                        navigator.clipboard.writeText(tastingNote.refactoredCode || "");
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      title="Copy Code"
+                    >
+                      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    </Button>
+                  )}
+                </div>
+                <div className="flex-1 border border-green-900/30 rounded-md overflow-hidden bg-green-950/10 overflow-y-auto">
+                  <CodeEditor
+                    value={tastingNote.refactoredCode || ""}
+                    onChange={() => { }}
+                    disabled={true}
+                    language={tastingNote.language}
+                    className="h-full border-none bg-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
 
       </Card>
     </motion.div>
   );
 }
-
