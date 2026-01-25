@@ -28,10 +28,12 @@ interface HistorySidebarProps {
 export function HistorySidebar({ onSelect, gameMode, newItem }: HistorySidebarProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [history, setHistory] = useState<HistoryItem[]>([]);
-    const { user, signInWithGoogle, logout } = useAuth();
+    const { user, signInWithGoogle, logout, loading } = useAuth();
 
     // Load history (Firestore if logged in, LocalStorage if guest)
     useEffect(() => {
+        if (loading) return;
+
         if (user) {
             // Subscribe to Firestore
             const q = query(
@@ -41,6 +43,8 @@ export function HistorySidebar({ onSelect, gameMode, newItem }: HistorySidebarPr
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HistoryItem));
                 setHistory(items);
+            }, (error) => {
+                console.error("Firestore Error:", error);
             });
             return () => unsubscribe();
         } else {
@@ -54,7 +58,7 @@ export function HistorySidebar({ onSelect, gameMode, newItem }: HistorySidebarPr
                 }
             }
         }
-    }, [user]);
+    }, [user, loading]);
 
     // Save new item
     useEffect(() => {

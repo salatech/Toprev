@@ -218,8 +218,8 @@ export default function Home() {
                 }}
                 mode={mode === "narrate" ? "diff" : "code"}
                 placeholder={mode === "roast"
-                  ? "Paste your code here, or drag & drop a file... The analysis will check for errors, memory leaks, scalability issues, and anti-patterns."
-                  : "Paste your raw code or `git diff` here, or drag & drop a file to generate a professional Pull Request description."
+                  ? "Paste code, drag & drop a file, or paste a GitHub PR URL... The analysis will check for errors, memory leaks, scalability issues, and anti-patterns."
+                  : "Paste your raw code, `git diff`, or GitHub PR URL here to generate a professional Pull Request description."
                 }
                 disabled={loading}
                 className="h-full border-none bg-transparent"

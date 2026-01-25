@@ -95,7 +95,7 @@ export function CodeEditor({
 
     return (
         <div
-            className={`relative font-mono text-sm border rounded-md overflow-auto bg-zinc-950 ${disabled ? "opacity-50 cursor-not-allowed" : ""
+            className={`relative font-mono text-sm border rounded-md bg-zinc-950 flex flex-col ${disabled ? "opacity-50 cursor-not-allowed" : ""
                 } ${isDragging ? "border-indigo-500 bg-indigo-950/20" : ""} ${className}`}
             style={{
                 // Custom scrollbar styling could go here or in global css
@@ -104,22 +104,38 @@ export function CodeEditor({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
         >
-            <Editor
-                value={value}
-                onValueChange={onChange}
-                highlight={highlightCode}
-                padding={16}
-                placeholder={placeholder}
-                disabled={disabled}
-                className="min-h-[200px] font-mono"
-                textareaClassName="focus:outline-none"
-                style={{
-                    fontFamily: '"Geist Mono", monospace',
-                    fontSize: 14,
-                    backgroundColor: "transparent",
-                    minHeight: "100%",
-                }}
-            />
+            {/* Editor Chrome / Tab Bar */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-900 bg-zinc-900/40 rounded-t-md flex-shrink-0">
+                <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5 mr-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                    </div>
+                    <div className="text-xs text-zinc-500 font-medium font-sans">
+                        {gameModeDisplay(mode, language)}
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-auto relative">
+                <Editor
+                    value={value}
+                    onValueChange={onChange}
+                    highlight={highlightCode}
+                    padding={16}
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    className="min-h-[200px] font-mono"
+                    textareaClassName="focus:outline-none"
+                    style={{
+                        fontFamily: '"Geist Mono", monospace',
+                        fontSize: 14,
+                        backgroundColor: "transparent",
+                        minHeight: "100%",
+                    }}
+                />
+            </div>
             <style jsx global>{`
         /* Overriding Prism tomorrow theme background to match our app */
         code[class*="language-"],
@@ -136,4 +152,16 @@ export function CodeEditor({
       `}</style>
         </div>
     );
+}
+
+// Helper for title
+function gameModeDisplay(mode: string, language?: string) {
+    if (mode === 'diff') return 'changes.diff';
+    const lang = language?.toLowerCase() || 'text';
+    const ext = lang === 'javascript' ? 'js' :
+        lang === 'typescript' ? 'ts' :
+            lang === 'python' ? 'py' :
+                lang === 'markdown' ? 'md' :
+                    'txt';
+    return `untitled.${ext}`;
 }
